@@ -40,11 +40,31 @@ void ActivityProfilerController::setLoggerCollectorFactory(
     std::function<std::shared_ptr<LoggerCollector>()> factory) {
   loggerCollectorFactory() = factory();
 }
+
+std::shared_ptr<LoggerCollector>
+ActivityProfilerController::getLoggerCollector() {
+  return loggerCollectorFactory();
+}
 #endif // !USE_GOOGLE_LOG
 
 ActivityProfilerController::ActivityProfilerController(
-    ConfigLoader& configLoader, bool cpuOnly)
+    ConfigLoader& configLoader,
+    bool cpuOnly)
     : configLoader_(configLoader) {
+  // Initialize ChromeTraceBaseTime first of all.
+  ChromeTraceBaseTime::singleton().init();
+
+#if !USE_GOOGLE_LOG
+  // Initialize LoggerCollector before ActivityProfiler to log
+  // CUPTI and CUDA driver versions.
+  if (loggerCollectorFactory()) {
+    // Keep a reference to the logger collector factory to handle safe
+    // static de-initialization.
+    loggerCollectorFactory_ = loggerCollectorFactory();
+    Logger::addLoggerObserver(loggerCollectorFactory_.get());
+  }
+#endif // !USE_GOOGLE_LOG
+
 #ifdef HAS_ROCTRACER
   profiler_ = std::make_unique<CuptiActivityProfiler>(
       RoctracerActivityApi::singleton(), cpuOnly);
@@ -53,20 +73,10 @@ ActivityProfilerController::ActivityProfilerController(
       CuptiActivityApi::singleton(), cpuOnly);
 #endif
   configLoader_.addHandler(ConfigLoader::ConfigKind::ActivityProfiler, this);
-
-#if !USE_GOOGLE_LOG
-  if (loggerCollectorFactory()) {
-    // Keep a reference to the logger collector factory to handle safe
-    // static de-initialization.
-    loggerCollectorFactory_ = loggerCollectorFactory();
-    Logger::addLoggerObserver(loggerCollectorFactory_.get());
-  }
-#endif // !USE_GOOGLE_LOG
 }
 
 ActivityProfilerController::~ActivityProfilerController() {
-  configLoader_.removeHandler(
-      ConfigLoader::ConfigKind::ActivityProfiler, this);
+  configLoader_.removeHandler(ConfigLoader::ConfigKind::ActivityProfiler, this);
   if (profilerThread_) {
     // signaling termination of the profiler loop
     stopRunloop_ = true;
@@ -85,7 +95,7 @@ ActivityProfilerController::~ActivityProfilerController() {
 static ActivityLoggerFactory initLoggerFactory() {
   ActivityLoggerFactory factory;
   factory.addProtocol("file", [](const std::string& url) {
-      return std::unique_ptr<ActivityLogger>(new ChromeTraceLogger(url));
+    return std::unique_ptr<ActivityLogger>(new ChromeTraceLogger(url));
   });
   return factory;
 }
@@ -96,7 +106,8 @@ static ActivityLoggerFactory& loggerFactory() {
 }
 
 void ActivityProfilerController::addLoggerFactory(
-    const std::string& protocol, ActivityLoggerFactory::FactoryFunc factory) {
+    const std::string& protocol,
+    ActivityLoggerFactory::FactoryFunc factory) {
   loggerFactory().addProtocol(protocol, factory);
 }
 
@@ -107,13 +118,15 @@ static std::unique_ptr<ActivityLogger> makeLogger(const Config& config) {
   return loggerFactory().makeLogger(config.activitiesLogUrl());
 }
 
-static std::unique_ptr<InvariantViolationsLogger>& invariantViolationsLoggerFactory() {
+static std::unique_ptr<InvariantViolationsLogger>&
+invariantViolationsLoggerFactory() {
   static std::unique_ptr<InvariantViolationsLogger> factory = nullptr;
   return factory;
 }
 
 void ActivityProfilerController::setInvariantViolationsLoggerFactory(
-    const std::function<std::unique_ptr<InvariantViolationsLogger>()>& factory) {
+    const std::function<std::unique_ptr<InvariantViolationsLogger>()>&
+        factory) {
   invariantViolationsLoggerFactory() = factory();
 }
 
@@ -135,13 +148,16 @@ bool ActivityProfilerController::shouldActivateTimestampConfig(
   }
   // Note on now + Config::kControllerIntervalMsecs:
   // Profiler interval does not align perfectly up to startTime - warmup.
-  // Waiting until the next tick won't allow sufficient time for the profiler to warm up.
-  // So check if we are very close to the warmup time and trigger warmup.
-  if (now + Config::kControllerIntervalMsecs
-      >= (asyncRequestConfig_->requestTimestamp() - asyncRequestConfig_->activitiesWarmupDuration())) {
-    LOG(INFO) << "Received on-demand activity trace request by "
-              << " profile timestamp = "
-              << asyncRequestConfig_->requestTimestamp().time_since_epoch().count();
+  // Waiting until the next tick won't allow sufficient time for the profiler to
+  // warm up. So check if we are very close to the warmup time and trigger
+  // warmup.
+  if (now + Config::kControllerIntervalMsecs >=
+      (asyncRequestConfig_->requestTimestamp() -
+       asyncRequestConfig_->activitiesWarmupDuration())) {
+    LOG(INFO)
+        << "Received on-demand activity trace request by "
+        << " profile timestamp = "
+        << asyncRequestConfig_->requestTimestamp().time_since_epoch().count();
     return true;
   }
   return false;
@@ -159,24 +175,25 @@ bool ActivityProfilerController::shouldActivateIterationConfig(
   }
 
   LOG(INFO) << "Received on-demand activity trace request by "
-                " profile start iteration = "
+               " profile start iteration = "
             << asyncRequestConfig_->profileStartIteration()
             << ", current iteration = " << currentIter;
   // Re-calculate the start iter if requested iteration is in the past.
   if (currentIter > rootIter) {
-    auto newProfileStart = currentIter +
-        asyncRequestConfig_->activitiesWarmupIterations();
+    auto newProfileStart =
+        currentIter + asyncRequestConfig_->activitiesWarmupIterations();
     // Use Start Iteration Round Up if it is present.
     if (asyncRequestConfig_->profileStartIterationRoundUp() > 0) {
       // round up to nearest multiple
       auto divisor = asyncRequestConfig_->profileStartIterationRoundUp();
       auto rem = newProfileStart % divisor;
       newProfileStart += ((rem == 0) ? 0 : divisor - rem);
-      LOG(INFO) << "Rounding up profiler start iteration to : " << newProfileStart;
+      LOG(INFO) << "Rounding up profiler start iteration to : "
+                << newProfileStart;
       asyncRequestConfig_->setProfileStartIteration(newProfileStart);
       if (currentIter != asyncRequestConfig_->startIterationIncludingWarmup()) {
-        // Ex. Current 9, start 8, warmup 5, roundup 100. Resolves new start to 100,
-        // with warmup starting at 95. So don't start now.
+        // Ex. Current 9, start 8, warmup 5, roundup 100. Resolves new start to
+        // 100, with warmup starting at 95. So don't start now.
         return false;
       }
     } else {
@@ -219,8 +236,8 @@ void ActivityProfilerController::profilerLoop() {
     if (profiler_->isActive()) {
       next_wakeup_time = profiler_->performRunLoopStep(now, next_wakeup_time);
       VLOG(1) << "Profiler loop: "
-          << duration_cast<milliseconds>(system_clock::now() - now).count()
-          << "ms";
+              << duration_cast<milliseconds>(system_clock::now() - now).count()
+              << "ms";
     }
   }
 
@@ -310,24 +327,30 @@ void ActivityProfilerController::prepareTrace(const Config& config) {
   profiler_->configure(config, now);
 }
 
+void ActivityProfilerController::toggleCollectionDynamic(const bool enable) {
+  profiler_->toggleCollectionDynamic(enable);
+}
+
 void ActivityProfilerController::startTrace() {
   UST_LOGGER_MARK_COMPLETED(kWarmUpStage);
   profiler_->startTrace(std::chrono::system_clock::now());
 }
 
-std::unique_ptr<ActivityTraceInterface> ActivityProfilerController::stopTrace() {
+std::unique_ptr<ActivityTraceInterface>
+ActivityProfilerController::stopTrace() {
   profiler_->stopTrace(std::chrono::system_clock::now());
   UST_LOGGER_MARK_COMPLETED(kCollectionStage);
   auto logger = std::make_unique<MemoryTraceLogger>(profiler_->config());
   profiler_->processTrace(*logger);
-  // Will follow up with another patch for logging URLs when ActivityTrace is moved.
+  // Will follow up with another patch for logging URLs when ActivityTrace is
+  // moved.
   UST_LOGGER_MARK_COMPLETED(kPostProcessingStage);
 
   // Logger Metadata contains a map of LOGs collected in Kineto
   //   logger_level -> List of log lines
   // This will be added into the trace as metadata.
-  std::unordered_map<std::string, std::vector<std::string>>
-    loggerMD = profiler_->getLoggerMetadata();
+  std::unordered_map<std::string, std::vector<std::string>> loggerMD =
+      profiler_->getLoggerMetadata();
   logger->setLoggerMetadata(std::move(loggerMD));
 
   profiler_->reset();
@@ -335,7 +358,8 @@ std::unique_ptr<ActivityTraceInterface> ActivityProfilerController::stopTrace() 
 }
 
 void ActivityProfilerController::addMetadata(
-    const std::string& key, const std::string& value) {
+    const std::string& key,
+    const std::string& value) {
   profiler_->addMetadata(key, value);
 }
 
@@ -345,7 +369,8 @@ void ActivityProfilerController::logInvariantViolation(
     const std::string& error,
     const std::string& group_profile_id) {
   if (invariantViolationsLoggerFactory()) {
-    invariantViolationsLoggerFactory()->logInvariantViolation(profile_id, assertion, error, group_profile_id);
+    invariantViolationsLoggerFactory()->logInvariantViolation(
+        profile_id, assertion, error, group_profile_id);
   }
 }
 

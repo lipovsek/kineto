@@ -1,6 +1,8 @@
 # -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # --------------------------------------------------------------------------
+
+# pyre-unsafe
 from collections import defaultdict
 from enum import IntEnum
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -80,6 +82,7 @@ class MemorySnapshot:
         peaks = defaultdict(int)
         for r in self.memory_records:
             if r.total_allocated == r.total_allocated:  # !isnan
+                # pyre-fixme[6]: For 2nd argument expected `int` but got `float`.
                 peaks[(r.device_type, r.device_id)] = max(peaks[(r.device_type, r.device_id)], r.total_allocated)
         return peaks
 
@@ -155,6 +158,8 @@ class MemorySnapshot:
         for op_name, op_agg in agg_result[0].items():
             op_calls[op_name] += op_agg.calls
 
+        # pyre-fixme[9]: result has type `Dict[str, Dict[str, List[int]]]`; used as
+        #  `DefaultDict[Variable[_KT], DefaultDict[Variable[_KT], Variable[_VT]]]`.
         result: Dict[str, Dict[str, List[int]]] = defaultdict(defaultdict)
         for device, node_metrics in memory_metrics_keyed_by_nodename.items():
             for node, values in node_metrics.items():
@@ -207,6 +212,8 @@ class MemoryParser:
             node_stack: List[Tuple[OperatorNode, int]] = []
 
             record_index = 0
+            # pyre-fixme[9]: current_node has type `OperatorNode`; used as
+            #  `Optional[OperatorNode]`.
             current_node: OperatorNode = tid2tree.get(tid)
             child_index = 0
 
@@ -249,6 +256,8 @@ class MemoryParser:
                         child_index += 1
                     else:
                         # if there is not item in stack, set it to None
+                        # pyre-fixme[9]: current_node has type `OperatorNode`; used
+                        #  as `None`.
                         current_node = None
                     continue
 

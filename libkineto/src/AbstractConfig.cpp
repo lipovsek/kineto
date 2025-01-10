@@ -8,8 +8,8 @@
 
 #include "AbstractConfig.h"
 
-#include <array>
 #include <fmt/format.h>
+#include <array>
 #include <sstream>
 
 #include "Logger.h"
@@ -158,7 +158,7 @@ bool AbstractConfig::parse(const string& conf) {
         }
       } catch (const std::exception& e) {
         LOG(ERROR) << "Failed to parse config: " << e.what()
-                   << " ; line: "<< line;
+                   << " ; line: " << line;
         return false;
       }
       if (!handled) {
@@ -188,6 +188,12 @@ bool AbstractConfig::handleOption(
 void AbstractConfig::printActivityProfilerConfig(std::ostream& s) const {
   for (const auto& feature_cfg : featureConfigs_) {
     feature_cfg.second->printActivityProfilerConfig(s);
+  }
+}
+
+void AbstractConfig::setActivityDependentConfig() {
+  for (const auto& feature_cfg : featureConfigs_) {
+    feature_cfg.second->setActivityDependentConfig();
   }
 }
 

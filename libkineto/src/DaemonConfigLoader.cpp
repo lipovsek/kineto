@@ -10,30 +10,33 @@
 
 // TODO(T90238193)
 // @lint-ignore-every CLANGTIDY facebook-hte-RelativeInclude
-#include "Logger.h"
-#include "ConfigLoader.h"
 #include "DaemonConfigLoader.h"
-#include "IpcFabricConfigClient.h"
+#include "ConfigLoader.h"
+#include "Logger.h"
 
 namespace KINETO_NAMESPACE {
 
 // TODO : implications of this singleton being thread safe on forks?
-IpcFabricConfigClient* getConfigClient() {
-  static auto client = std::make_unique<IpcFabricConfigClient>();
-  return client.get();
+IpcFabricConfigClient* DaemonConfigLoader::getConfigClient() {
+  if (!configClient) {
+    configClient = std::make_unique<IpcFabricConfigClient>();
+  }
+  return configClient.get();
 }
 
 std::string DaemonConfigLoader::readBaseConfig() {
   LOG(INFO) << "Reading base config";
-  auto configClient = getConfigClient();
-  if (!configClient) {
+  auto configClient_2 = getConfigClient();
+  if (!configClient_2) {
     LOG_EVERY_N(WARNING, 10) << "Failed to read config: No dyno config client";
     return "";
   }
-  return configClient->getLibkinetoBaseConfig();
+  return configClient_2->getLibkinetoBaseConfig();
 }
 
-std::string DaemonConfigLoader::readOnDemandConfig(bool events, bool activities) {
+std::string DaemonConfigLoader::readOnDemandConfig(
+    bool events,
+    bool activities) {
   auto configClient = getConfigClient();
   if (!configClient) {
     LOG_EVERY_N(WARNING, 10) << "Failed to read config: No dyno config client";
@@ -66,18 +69,17 @@ void DaemonConfigLoader::setCommunicationFabric(bool enabled) {
   if (!configClient) {
     LOG(WARNING) << "Failed to read config: No dyno config client";
     // This is probably a temporary problem - return -1 to indicate error.
-    return ;
+    return;
   }
   return configClient->setIpcFabricEnabled(enabled);
 }
 
 void DaemonConfigLoader::registerFactory() {
-  ConfigLoader::setDaemonConfigLoaderFactory(
-      []() {
-        auto loader = std::make_unique<DaemonConfigLoader>();
-        loader->setCommunicationFabric(true);
-        return loader;
-      });
+  ConfigLoader::setDaemonConfigLoaderFactory([]() {
+    auto loader = std::make_unique<DaemonConfigLoader>();
+    loader->setCommunicationFabric(true);
+    return loader;
+  });
 }
 
 } // namespace KINETO_NAMESPACE

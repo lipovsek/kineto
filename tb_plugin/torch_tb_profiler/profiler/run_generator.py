@@ -1,6 +1,8 @@
 # -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # --------------------------------------------------------------------------
+
+# pyre-unsafe
 from collections import OrderedDict
 from typing import Dict, Iterable, List
 
@@ -84,8 +86,12 @@ class RunGenerator:
                           '<b>{}: {}us</b><br>'
                           'Percentage: {}%'
                           '</div>')
-            percentage = round(100 * part_cost / costs.costs[ProfileRole.Total], 2)
-            return format_str.format(step_name, costs.costs[ProfileRole.Total], part_name, part_cost, percentage)
+
+            if (total_cost := costs.costs[ProfileRole.Total]) == 0:
+                percentage = 0.0
+            else:
+                percentage = round(100 * part_cost / total_cost, 2)
+            return format_str.format(step_name, total_cost, part_name, part_cost, percentage)
 
         def build_avg_cost_dict(part_name: str, part_cost: float):
             cost_dict = {'name': part_name,

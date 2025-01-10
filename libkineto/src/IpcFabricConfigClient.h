@@ -8,17 +8,43 @@
 
 #pragma once
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
 #ifdef __linux__
 
 // TODO(T90238193)
 // @lint-ignore-every CLANGTIDY facebook-hte-RelativeInclude
 // include logger before to enable ipc fabric to access LOG() macros
 #ifdef ENABLE_IPC_FABRIC
-#include "Logger.h"
-#endif
 
+#include "Logger.h"
+
+// The following is required for LOG() macros to work below
 // Include the IPC Fabric
 #include "FabricManager.h"
+
+#else
+
+// Adds an empty implementation so compilation works.
+namespace dynolog::ipcfabric {
+
+class FabricManager {
+ public:
+  FabricManager(const FabricManager&) = delete;
+  FabricManager& operator=(const FabricManager&) = delete;
+
+  static std::unique_ptr<FabricManager> factory(
+      std::string endpoint_name = "") {
+    return NULL;
+  }
+};
+
+} // namespace dynolog::ipcfabric
+
+#endif // ENABLE_IPC_FABRIC
 
 namespace KINETO_NAMESPACE {
 
@@ -27,7 +53,6 @@ enum LibkinetoConfigType {
   EVENTS = 0x1,
   ACTIVITIES = 0x2,
 };
-
 
 // IpcFabricConfigClient : connects to a daemon using the IPC Fabric
 //   this can be used as a base class for other Daemon Config clients as well.
@@ -51,8 +76,8 @@ class IpcFabricConfigClient {
   }
 
  protected:
-  // Temporarily keep both int and string job id until IPC related code is updated to handle
-  // string job id.
+  // Temporarily keep both int and string job id until IPC related code is
+  // updated to handle string job id.
   int64_t jobId_;
   std::string jobIdStr_;
   std::vector<int32_t> pids_;

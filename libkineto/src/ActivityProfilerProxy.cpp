@@ -8,21 +8,18 @@
 
 #include "ActivityProfilerProxy.h"
 
+#include <chrono>
 #include "ActivityProfilerController.h"
 #include "Config.h"
-#include "CuptiActivityApi.h"
 #include "Logger.h"
-#include <chrono>
-#ifdef HAS_ROCTRACER
-#include "RoctracerActivityApi.h"
-#endif
+#include "ThreadUtil.h"
 
 namespace KINETO_NAMESPACE {
 
 ActivityProfilerProxy::ActivityProfilerProxy(
-    bool cpuOnly, ConfigLoader& configLoader)
-  : cpuOnly_(cpuOnly), configLoader_(configLoader) {
-}
+    bool cpuOnly,
+    ConfigLoader& configLoader)
+    : cpuOnly_(cpuOnly), configLoader_(configLoader) {}
 
 ActivityProfilerProxy::~ActivityProfilerProxy() {
   delete controller_;
@@ -35,6 +32,7 @@ void ActivityProfilerProxy::init() {
 }
 
 void ActivityProfilerProxy::scheduleTrace(const std::string& configStr) {
+  resetTLS();
   Config config;
   config.parse(configStr);
   controller_->scheduleTrace(config);
@@ -74,12 +72,15 @@ void ActivityProfilerProxy::prepareTrace(
   controller_->prepareTrace(config);
 }
 
+void ActivityProfilerProxy::toggleCollectionDynamic(const bool enable) {
+  controller_->toggleCollectionDynamic(enable);
+}
+
 void ActivityProfilerProxy::startTrace() {
   controller_->startTrace();
 }
 
-std::unique_ptr<ActivityTraceInterface>
-ActivityProfilerProxy::stopTrace() {
+std::unique_ptr<ActivityTraceInterface> ActivityProfilerProxy::stopTrace() {
   return controller_->stopTrace();
 }
 
@@ -92,41 +93,29 @@ bool ActivityProfilerProxy::isActive() {
 }
 
 void ActivityProfilerProxy::pushCorrelationId(uint64_t id) {
-  CuptiActivityApi::pushCorrelationID(id,
-    CuptiActivityApi::CorrelationFlowType::Default);
-#ifdef HAS_ROCTRACER
-  // FIXME: bad design here
-  RoctracerActivityApi::pushCorrelationID(id,
-    RoctracerActivityApi::CorrelationFlowType::Default);
-#endif
+  controller_->pushCorrelationId(id);
 }
 
 void ActivityProfilerProxy::popCorrelationId() {
-  CuptiActivityApi::popCorrelationID(
-    CuptiActivityApi::CorrelationFlowType::Default);
-#ifdef HAS_ROCTRACER
-  RoctracerActivityApi::popCorrelationID(
-    RoctracerActivityApi::CorrelationFlowType::Default);
-#endif
+  controller_->popCorrelationId();
 }
 
 void ActivityProfilerProxy::pushUserCorrelationId(uint64_t id) {
-  CuptiActivityApi::pushCorrelationID(id,
-    CuptiActivityApi::CorrelationFlowType::User);
+  controller_->pushUserCorrelationId(id);
 }
 
 void ActivityProfilerProxy::popUserCorrelationId() {
-  CuptiActivityApi::popCorrelationID(
-    CuptiActivityApi::CorrelationFlowType::User);
+  controller_->popUserCorrelationId();
 }
 
 void ActivityProfilerProxy::transferCpuTrace(
-   std::unique_ptr<CpuTraceBuffer> traceBuffer) {
+    std::unique_ptr<CpuTraceBuffer> traceBuffer) {
   controller_->transferCpuTrace(std::move(traceBuffer));
 }
 
 void ActivityProfilerProxy::addMetadata(
-    const std::string& key, const std::string& value) {
+    const std::string& key,
+    const std::string& value) {
   controller_->addMetadata(key, value);
 }
 
@@ -144,7 +133,8 @@ void ActivityProfilerProxy::logInvariantViolation(
     const std::string& assertion,
     const std::string& error,
     const std::string& group_profile_id) {
-    controller_->logInvariantViolation(profile_id, assertion, error, group_profile_id);
+  controller_->logInvariantViolation(
+      profile_id, assertion, error, group_profile_id);
 }
 
-} // namespace libkineto
+} // namespace KINETO_NAMESPACE

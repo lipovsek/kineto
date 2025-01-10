@@ -14,22 +14,28 @@
 #include <thread>
 #include <unordered_map>
 
-#include "ActivityBuffers.h"
+// TODO(T90238193)
+// @lint-ignore-every CLANGTIDY facebook-hte-RelativeInclude
 #include "GenericTraceActivity.h"
+#include "IActivityProfiler.h"
 #include "ThreadUtil.h"
 #include "TraceSpan.h"
 
 namespace KINETO_NAMESPACE {
-  class Config;
+struct ActivityBuffers;
 }
 
 namespace libkineto {
 
 using namespace KINETO_NAMESPACE;
 
+// Used by sortIndex to put GPU tracks at the bottom
+// of the trace timelines. The largest valid CPU PID is 4,194,304,
+// so 5000000 is enough to guarantee that GPU tracks are sorted after CPU.
+constexpr int64_t kExceedMaxPid = 5000000;
+
 class ActivityLogger {
  public:
-
   virtual ~ActivityLogger() = default;
 
   struct OverheadInfo {
@@ -37,9 +43,7 @@ class ActivityLogger {
     const std::string name;
   };
 
-  virtual void handleDeviceInfo(
-      const DeviceInfo &info,
-      uint64_t time) = 0;
+  virtual void handleDeviceInfo(const DeviceInfo& info, uint64_t time) = 0;
 
   virtual void handleResourceInfo(const ResourceInfo& info, int64_t time) = 0;
 
@@ -47,20 +51,20 @@ class ActivityLogger {
 
   virtual void handleTraceSpan(const TraceSpan& span) = 0;
 
-  virtual void handleActivity(
-      const libkineto::ITraceActivity& activity) = 0;
+  virtual void handleActivity(const libkineto::ITraceActivity& activity) = 0;
   virtual void handleGenericActivity(
       const libkineto::GenericTraceActivity& activity) = 0;
 
   virtual void handleTraceStart(
-      const std::unordered_map<std::string, std::string>& metadata) = 0;
+      const std::unordered_map<std::string, std::string>& metadata,
+      const std::string& device_properties) = 0;
 
   void handleTraceStart() {
-    handleTraceStart(std::unordered_map<std::string, std::string>());
+    handleTraceStart(std::unordered_map<std::string, std::string>(), "");
   }
 
   virtual void finalizeTrace(
-      const KINETO_NAMESPACE::Config& config,
+      const Config& config,
       std::unique_ptr<ActivityBuffers> buffers,
       int64_t endTime,
       std::unordered_map<std::string, std::vector<std::string>>& metadata) = 0;
@@ -69,4 +73,4 @@ class ActivityLogger {
   ActivityLogger() = default;
 };
 
-} // namespace KINETO_NAMESPACE
+} // namespace libkineto

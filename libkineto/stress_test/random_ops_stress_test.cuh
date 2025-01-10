@@ -23,108 +23,120 @@ extern float* pBuffNCCLSend;
 extern float* pBuffNCCLRecv;
 
 struct stress_test_args {
-    // Number of threads that run the stress test
-    uint32_t num_workers {1};
+  // Number of threads that run the stress test
+  uint32_t num_workers{1};
 
-    // Number of operations per stress test
-    uint32_t num_operations {10000};
+  // Number of operations per stress test
+  uint32_t num_operations{10000};
 
-    // Can improve event density. Cuda streams per worker
-    uint32_t num_cuda_streams {1};
+  // Can improve event density. Cuda streams per worker
+  uint32_t num_cuda_streams{1};
 
-    // Simulates cuda mallocs happening in the PT Cuda Cache Allocator
-    double prob_cuda_malloc {0.001};
+  // Simulates cuda mallocs happening in the PT Cuda Cache Allocator
+  double prob_cuda_malloc{0.001};
 
-    // The min number of compute iterations in the cuda kernel. If high
-    // this reduces event density.
-    uint32_t min_iters_kernel {1};
+  // The min number of compute iterations in the cuda kernel. If high
+  // this reduces event density.
+  uint32_t min_iters_kernel{1};
 
-    // The max number of compute iterations in the cuda kernel. If high
-    // this reduces event density.
-    uint32_t max_iters_kernel {5};
+  // The max number of compute iterations in the cuda kernel. If high
+  // this reduces event density.
+  uint32_t max_iters_kernel{5};
 
-    // The probability that instead of a kernel call we do a memset on the
-    // input buffers, using a magic value
-    double memset_prob {0.05};
+  // Controls the number of threads per block for the LCG kernel
+  uint32_t kernel_block_size{256};
 
-    // The min idle time between kernel launches in microseconds
-    uint32_t min_idle_us {1};
+  // Controls the number of CUDA thread blocks for the LCG kernel
+  uint32_t thread_blocks_per_kernel{256};
 
-    // The max idle time between kernel launches in microseconds
-    uint32_t max_idle_us {2};
+  // The probability that instead of a kernel call we do a memset on the
+  // input buffers, using a magic value
+  double memset_prob{0.05};
 
-    // If true, we randomly sleep a number of microseconds between kernel
-    // launches.
-    bool simulate_host_time {false};
+  // The min idle time between kernel launches in microseconds
+  uint32_t min_idle_us{1};
 
-    // If non-zero, we allocate UVM memory and use it
-    bool use_uvm_buffers {false};
+  // The max idle time between kernel launches in microseconds
+  uint32_t max_idle_us{2};
 
-    // Size of a single buffer in FP32 elements in UVM
-    uint64_t uvm_len {0};
+  // If true, a warmup cycle is ran before a profiled run
+  bool do_warmup{false};
 
-    // If set true, the UVM allocation and initialization will be done in parallel
-    // with cache allocation (e.g. cudaHostAlloc)
-    bool parallel_uvm_alloc {false};
+  // If true, we randomly sleep a number of microseconds between kernel
+  // launches.
+  bool simulate_host_time{false};
 
-    // The probability of running a kernel that uses UVM
-    double uvm_kernel_prob {0.001};
+  // If non-zero, we allocate UVM memory and use it
+  bool use_uvm_buffers{false};
 
-    // If true we need to run the binary using MPI on multiple ranks
-    bool is_multi_rank {false};
+  // Size of a single buffer in FP32 elements in UVM
+  uint64_t uvm_len{0};
 
-    // Number of parallel processes to be spawned via MPI
-    int32_t num_ranks {1};
+  // If set true, the UVM allocation and initialization will be done in parallel
+  // with cache allocation (e.g. cudaHostAlloc)
+  bool parallel_uvm_alloc{false};
 
-    // Use this variable to pin a process to a specific GPU index.
-    // Do not modify!
-    int32_t rank {0};
+  // The probability of running a kernel that uses UVM
+  double uvm_kernel_prob{0.001};
 
-    // Size of the NCCL buffers which needs to be at least the size
-    // of the largest tensor
-    uint32_t sz_nccl_buff_KB {1024};
+  // If true we need to run the binary using MPI on multiple ranks
+  bool is_multi_rank{false};
 
-    // Number of iterations between NCCL sync calls
-    uint32_t num_iters_nccl_sync {100};
+  // Number of parallel processes to be spawned via MPI
+  int32_t num_ranks{1};
 
-    // If true, we pre-allocate CUDA streams and reuse them throughout
-    // the experiment
-    bool pre_alloc_streams {false};
+  // Use this variable to pin a process to a specific GPU index.
+  // Do not modify!
+  int32_t rank{0};
 
-    // If true, h2d and d2h transfers would be scheduled on their own
-    // CUDA stream
-    bool use_memcpy_stream {false};
+  // Size of the NCCL buffers which needs to be at least the size
+  // of the largest tensor
+  uint32_t sz_nccl_buff_KB{1024};
 
-    // If true, kernels using UVM would be scheduled on their own
-    // CUDA stream
-    bool use_uvm_stream {false};
+  // Number of iterations between NCCL sync calls
+  uint32_t num_iters_nccl_sync{100};
 
-    // If true, we use cudaGetMemInfo throughout the stress test to
-    // measure peak memory usage
-    bool monitor_mem_usage {false};
+  // If true, we pre-allocate CUDA streams and reuse them throughout
+  // the experiment
+  bool pre_alloc_streams{false};
 
-    // Number of microseconds for trace collection. If 0 the trace is
-    // not collected
-    uint32_t trace_length_us {1000000};
+  // If true, h2d and d2h transfers would be scheduled on their own
+  // CUDA stream
+  bool use_memcpy_stream{false};
 
-    // Size of the CUPTI activity buffer in MB. If it's 0, we don't
-    // explicitly set a value
-    uint32_t cupti_buffer_mb {0};
+  // If true, kernels using UVM would be scheduled on their own
+  // CUDA stream
+  bool use_uvm_stream{false};
 
-    /* VARIABLES */
+  // If true, we use cudaGetMemInfo throughout the stress test to
+  // measure peak memory usage
+  bool monitor_mem_usage{false};
 
-    // The CUDA streams vector
-    cudaStream_t *compute_streams {nullptr};
+  // Number of microseconds to wait before the trace collection starts
+  uint32_t trace_delay_us{3000000};
 
-    // The explicit memcpy stream
-    cudaStream_t *memcpy_streams {nullptr};
+  // Number of microseconds for trace collection. If 0 the trace is
+  // not collected
+  uint32_t trace_length_us{1000000};
 
-    // The explicit UVM stream
-    cudaStream_t *uvm_streams {nullptr};
+  // Size of the CUPTI activity buffer in MB. If it's 0, we don't
+  // explicitly set a value
+  uint32_t cupti_buffer_mb{0};
 
-    // UVM buffers
-    float* uvm_a {nullptr};
-    float* uvm_b {nullptr};
+  /* VARIABLES */
+
+  // The CUDA streams vector
+  cudaStream_t* compute_streams{nullptr};
+
+  // The explicit memcpy stream
+  cudaStream_t* memcpy_streams{nullptr};
+
+  // The explicit UVM stream
+  cudaStream_t* uvm_streams{nullptr};
+
+  // UVM buffers
+  float* uvm_a{nullptr};
+  float* uvm_b{nullptr};
 };
 
 // We are using this to reduce the number of code lines
@@ -141,13 +153,12 @@ struct lcg_kernel_input {
 
 // Use this function to vary the kernel name at runtime
 void call_compute_kernel(
-  uint32_t thread_blocks,
-  uint32_t threads_per_block,
-  uint32_t shmem_sz,
-  cudaStream_t stream,
-  lcg_kernel_input kernel_args,
-  uint32_t op_id
-);
+    uint32_t thread_blocks,
+    uint32_t threads_per_block,
+    uint32_t shmem_sz,
+    cudaStream_t stream,
+    lcg_kernel_input kernel_args,
+    uint32_t op_id);
 
 void run_stress_test(
     uint32_t thread_id,

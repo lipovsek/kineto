@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace KINETO_NAMESPACE {
+namespace libkineto {
 
 class AbstractConfig {
  public:
@@ -80,11 +80,15 @@ class AbstractConfig {
   // multiple options.
   // Throw std::invalid_argument if automatic correction can not be made.
   //
-  // @param fallbackProfileStartTime Specify a fallback profile start timestamp in case it was never specified by the client
-  virtual void validate(const std::chrono::time_point<std::chrono::system_clock>& fallbackProfileStartTime) = 0;
+  // @param fallbackProfileStartTime Specify a fallback profile start timestamp
+  // in case it was never specified by the client
+  virtual void validate(
+      const std::chrono::time_point<std::chrono::system_clock>&
+          fallbackProfileStartTime) = 0;
 
   // TODO: Separate out each profiler type into features?
   virtual void printActivityProfilerConfig(std::ostream& s) const;
+  virtual void setActivityDependentConfig();
 
   // Helpers for use in handleOption
   // Split a string by delimiter and remove external white space
@@ -116,4 +120,4 @@ class AbstractConfig {
   std::map<std::string, AbstractConfig*> featureConfigs_{};
 };
 
-} // namespace KINETO_NAMESPACE
+} // namespace libkineto

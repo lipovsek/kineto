@@ -1,6 +1,8 @@
 # -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # --------------------------------------------------------------------------
+
+# pyre-unsafe
 from typing import Iterable, List
 
 from .. import consts, utils
@@ -165,6 +167,8 @@ class GPUMetricsParser:
         logger.debug('GPU Metrics, parse events')
         for event in events:
             if event.type == EventTypes.KERNEL:
+                # pyre-fixme[6]: For 1st argument expected `KernelEvent` but got
+                #  `BaseEvent`.
                 parser.parse_event(event)
 
         parser.calculate_gpu_utilization(global_start_time, global_end_time, steps_start_time, steps_end_time)

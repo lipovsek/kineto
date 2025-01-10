@@ -1,8 +1,11 @@
 # -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # -------------------------------------------------------------------------
+
+# pyre-unsafe
 import os
 
+# pyre-fixme[21]: Could not find module `azure.storage.blob`.
 from azure.storage.blob import ContainerClient
 
 from .. import utils

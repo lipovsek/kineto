@@ -10,16 +10,19 @@
 #include <set>
 #include <vector>
 
+// TODO(T90238193)
+// @lint-ignore-every CLANGTIDY facebook-hte-RelativeInclude
+#include "libkineto.h"
 #include "output_base.h"
 #include "test/MockActivitySubProfiler.h"
 
 namespace libkineto {
 
-const std::set<ActivityType> supported_activities {ActivityType::CPU_OP};
+const std::set<ActivityType> supported_activities{ActivityType::CPU_OP};
 const std::string profile_name{"MockProfiler"};
 
 void MockProfilerSession::processTrace(ActivityLogger& logger) {
-  for (const auto& activity: test_activities_) {
+  for (const auto& activity : test_activities_) {
     activity.log(logger);
   }
 }
@@ -28,29 +31,30 @@ const std::string& MockActivityProfiler::name() const {
   return profile_name;
 }
 
-const std::set<ActivityType>& MockActivityProfiler::availableActivities() const {
+const std::set<ActivityType>& MockActivityProfiler::availableActivities()
+    const {
   return supported_activities;
 }
 
 MockActivityProfiler::MockActivityProfiler(
-    std::deque<GenericTraceActivity>& activities) :
-  test_activities_(activities) {};
+    std::deque<GenericTraceActivity>& activities)
+    : test_activities_(activities) {}
 
 std::unique_ptr<IActivityProfilerSession> MockActivityProfiler::configure(
-      const std::set<ActivityType>& /*activity_types*/,
-      const Config& /*config*/) {
+    const std::set<ActivityType>& /*activity_types*/,
+    const Config& /*config*/) {
   auto session = std::make_unique<MockProfilerSession>();
-	session->set_test_activities(std::move(test_activities_));
+  session->set_test_activities(std::move(test_activities_));
   return session;
-};
+}
 
 std::unique_ptr<IActivityProfilerSession> MockActivityProfiler::configure(
-      int64_t /*ts_ms*/,
-      int64_t /*duration_ms*/,
-      const std::set<ActivityType>& activity_types,
-      const Config& config) {
+    int64_t /*ts_ms*/,
+    int64_t /*duration_ms*/,
+    const std::set<ActivityType>& activity_types,
+    const Config& config) {
   return configure(activity_types, config);
-};
+}
 
 std::unique_ptr<CpuTraceBuffer> MockProfilerSession::getTraceBuffer() {
   auto buf = std::make_unique<CpuTraceBuffer>();

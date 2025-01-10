@@ -27,15 +27,15 @@ struct ITraceActivity {
   virtual int64_t resourceId() const = 0;
   // s/w thread
   virtual int32_t getThreadId() const = 0;
-  // Start timestamp in mucrosecond
+  // Start timestamp in nanoseconds
   virtual int64_t timestamp() const = 0;
-  // Duration in microseconds
+  // Duration in nanoseconds
   virtual int64_t duration() const = 0;
   // Used to link up async activities
   virtual int64_t correlationId() const = 0;
   // Part of a flow, identified by flow id and type
   virtual int flowType() const = 0;
-  virtual int flowId() const = 0;
+  virtual int64_t flowId() const = 0;
   virtual bool flowStart() const = 0;
   virtual ActivityType type() const = 0;
   virtual const std::string name() const = 0;

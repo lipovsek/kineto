@@ -1,6 +1,8 @@
 # -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # -------------------------------------------------------------------------
+
+# pyre-unsafe
 import sys
 from collections import defaultdict
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -32,7 +34,7 @@ class OpTreeBuilder:
 
         # if could not find any forward/backward association, skip the processing
         if not fwd_bwd_map:
-            logger.debug('there is no any forwarwd backward association, skip processing backward correlation.')
+            logger.debug('there is no any forward backward association, skip processing backward correlation.')
             return self.tid2tree
 
         self._set_main_tid()
@@ -202,6 +204,8 @@ class OpTreeBuilder:
 
             return modules, backward_nodes_flatten
         else:
+            # pyre-fixme[7]: Expected `Tuple[List[ModuleNode], List[OperatorNode]]`
+            #  but got `Tuple[None, None]`.
             return None, None
 
     @staticmethod
@@ -244,6 +248,7 @@ class OpTreeBuilder:
                             ts2parent: Dict[int, OperatorNode],
                             backward_nodes: Dict[OperatorNode, List[OperatorNode]]) -> Dict[int, List[OperatorNode]]:
         if not fwd_bwd_map:
+            # pyre-fixme[7]: Expected `Dict[int, List[OperatorNode]]` but got `None`.
             return None
 
         fwd_to_bwdroot: Dict[int, List[OperatorNode]] = {}
@@ -259,6 +264,7 @@ class OpTreeBuilder:
 
         return fwd_to_bwdroot
 
+    # pyre-fixme[47]: Non-static method must specify `self` parameter.
     def _build_backward_module(node: ModuleNode,
                                parent: Optional[BackwardNode],
                                fwd_bwd_map: Dict[int, List[OperatorNode]],
@@ -271,8 +277,8 @@ class OpTreeBuilder:
             return
 
         if isinstance(node, ModuleNode):
-            backward_node = BackwardNode(name=node.name + '.backward', start_time=None, end_time=None,
-                                         type='backward', tid=0)
+            backward_node = BackwardNode(name=node.name + '.backward', start_time=node.start_time,
+                                         end_time=node.end_time, type='backward', tid=node.tid)
             if parent is None:
                 result.append(backward_node)
             else:
@@ -286,6 +292,8 @@ class OpTreeBuilder:
                     if bwd_ops:
                         parent.children.extend(bwd_ops)
 
+            # pyre-fixme[6]: For 1st argument expected `ModuleNode` but got
+            #  `OperatorNode`.
             OpTreeBuilder._build_backward_module(child, parent, fwd_bwd_map, result)
 
         if isinstance(node, ModuleNode) and parent and parent.children:

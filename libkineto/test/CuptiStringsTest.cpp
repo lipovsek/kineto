@@ -13,18 +13,18 @@
 using namespace KINETO_NAMESPACE;
 
 TEST(CuptiStringsTest, Valid) {
-  ASSERT_STREQ(
-      runtimeCbidName(CUPTI_RUNTIME_TRACE_CBID_INVALID), "INVALID");
+  ASSERT_STREQ(runtimeCbidName(CUPTI_RUNTIME_TRACE_CBID_INVALID), "INVALID");
   ASSERT_STREQ(
       runtimeCbidName(CUPTI_RUNTIME_TRACE_CBID_cudaDriverGetVersion_v3020),
       "cudaDriverGetVersion");
-  ASSERT_STREQ(runtimeCbidName
-      (CUPTI_RUNTIME_TRACE_CBID_cudaDeviceSynchronize_v3020),
+  ASSERT_STREQ(
+      runtimeCbidName(CUPTI_RUNTIME_TRACE_CBID_cudaDeviceSynchronize_v3020),
       "cudaDeviceSynchronize");
   ASSERT_STREQ(
-      runtimeCbidName(CUPTI_RUNTIME_TRACE_CBID_cudaStreamSetAttribute_ptsz_v11000),
+      runtimeCbidName(
+          CUPTI_RUNTIME_TRACE_CBID_cudaStreamSetAttribute_ptsz_v11000),
       "cudaStreamSetAttribute_ptsz");
-#if defined(CUPTI_API_VERSION) && CUPTI_API_VERSION >= 17
+#if defined(CUPTI_API_VERSION) && CUPTI_API_VERSION >= 18
   ASSERT_STREQ(
       runtimeCbidName(CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernelExC_v11060),
       "cudaLaunchKernelExC");

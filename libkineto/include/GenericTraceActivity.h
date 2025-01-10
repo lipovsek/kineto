@@ -9,11 +9,11 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <unordered_map>
 #include <vector>
-#include <sstream>
 
 #include "ITraceActivity.h"
 #include "ThreadUtil.h"
@@ -25,15 +25,18 @@ namespace libkineto {
 constexpr unsigned int kLinkFwdBwd = 1;
 constexpr unsigned int kLinkAsyncCpuGpu = 2;
 
-// @lint-ignore-every CLANGTIDY cppcoreguidelines-non-private-member-variables-in-classes
+// @lint-ignore-every CLANGTIDY
+// cppcoreguidelines-non-private-member-variables-in-classes
 // @lint-ignore-every CLANGTIDY cppcoreguidelines-pro-type-member-init
 class GenericTraceActivity : public ITraceActivity {
  public:
   GenericTraceActivity()
-      : activityType(ActivityType::ENUM_COUNT), traceSpan_(NULL) {}
+      : activityType(ActivityType::ENUM_COUNT), traceSpan_(nullptr) {}
 
   GenericTraceActivity(
-      const TraceSpan& trace, ActivityType type, const std::string& name)
+      const TraceSpan& trace,
+      ActivityType type,
+      const std::string& name)
       : activityType(type), activityName(name), traceSpan_(&trace) {}
 
   int64_t deviceId() const override {
@@ -72,7 +75,7 @@ class GenericTraceActivity : public ITraceActivity {
     return flow.type;
   }
 
-  int flowId() const override {
+  int64_t flowId() const override {
     return flow.id;
   }
 
@@ -132,7 +135,7 @@ class GenericTraceActivity : public ITraceActivity {
   ActivityType activityType;
   std::string activityName;
   struct Flow {
-    Flow(): id(0), type(0), start(0) {}
+    Flow() : id(0), type(0), start(0) {}
     // Ids must be unique within each type
     uint32_t id : 27;
     // Type will be used to connect flows between profilers, as

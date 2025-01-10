@@ -13,6 +13,9 @@
 #include <unordered_map>
 #include <vector>
 
+// TODO(T90238193)
+// @lint-ignore-every CLANGTIDY facebook-hte-RelativeInclude
+#include "ActivityBuffers.h"
 #include "Config.h"
 #include "GenericTraceActivity.h"
 #include "output_base.h"
@@ -29,9 +32,7 @@ class MemoryTraceLogger : public ActivityLogger {
 
   // Note: the caller of these functions should handle concurrency
   // i.e., these functions are not thread-safe
-  void handleDeviceInfo(
-      const DeviceInfo& info,
-      uint64_t time) override {
+  void handleDeviceInfo(const DeviceInfo& info, uint64_t time) override {
     deviceInfoList_.emplace_back(info, time);
   }
 
@@ -45,7 +46,7 @@ class MemoryTraceLogger : public ActivityLogger {
     // Handled separately
   }
 
-  template<class T>
+  template <class T>
   void addActivityWrapper(const T& act) {
     wrappers_.push_back(std::make_unique<T>(act));
     activities_.push_back(wrappers_.back().get());
@@ -61,15 +62,18 @@ class MemoryTraceLogger : public ActivityLogger {
   }
 
   void handleTraceStart(
-      const std::unordered_map<std::string, std::string>& metadata) override {
+      const std::unordered_map<std::string, std::string>& metadata,
+      const std::string& device_properties) override {
     metadata_ = metadata;
+    device_properties_ = device_properties;
   }
 
   void finalizeTrace(
       const Config& config,
       std::unique_ptr<ActivityBuffers> buffers,
       int64_t endTime,
-      std::unordered_map<std::string, std::vector<std::string>>& metadata) override {
+      std::unordered_map<std::string, std::vector<std::string>>& metadata)
+      override {
     buffers_ = std::move(buffers);
     endTime_ = endTime;
   }
@@ -79,7 +83,7 @@ class MemoryTraceLogger : public ActivityLogger {
   }
 
   void log(ActivityLogger& logger) {
-    logger.handleTraceStart(metadata_);
+    logger.handleTraceStart(metadata_, device_properties_);
     for (auto& activity : activities_) {
       activity->log(logger);
     }
@@ -101,8 +105,15 @@ class MemoryTraceLogger : public ActivityLogger {
     loggerMetadata_ = std::move(lmd);
   }
 
- private:
+  void setChromeLogger(std::shared_ptr<ActivityLogger> logger) {
+    chrome_logger_ = logger;
+  }
 
+  std::shared_ptr<ActivityLogger> getChromeLogger() {
+    return chrome_logger_;
+  }
+
+ private:
   std::unique_ptr<Config> config_;
   // Optimization: Remove unique_ptr by keeping separate vector per type
   std::vector<const ITraceActivity*> activities_;
@@ -112,7 +123,9 @@ class MemoryTraceLogger : public ActivityLogger {
   std::unique_ptr<ActivityBuffers> buffers_;
   std::unordered_map<std::string, std::string> metadata_;
   std::unordered_map<std::string, std::vector<std::string>> loggerMetadata_;
+  std::string device_properties_;
   int64_t endTime_{0};
+  std::shared_ptr<ActivityLogger> chrome_logger_;
 };
 
 } // namespace KINETO_NAMESPACE

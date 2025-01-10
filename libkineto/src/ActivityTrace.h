@@ -23,9 +23,7 @@ class ActivityTrace : public ActivityTraceInterface {
   ActivityTrace(
       std::unique_ptr<MemoryTraceLogger> tmpLogger,
       const ActivityLoggerFactory& factory)
-    : memLogger_(std::move(tmpLogger)),
-      loggerFactory_(factory) {
-  }
+      : memLogger_(std::move(tmpLogger)), loggerFactory_(factory) {}
 
   const std::vector<const ITraceActivity*>* activities() override {
     return memLogger_->traceActivities();
@@ -37,7 +35,8 @@ class ActivityTrace : public ActivityTraceInterface {
     if (url.find("://") == url.npos) {
       prefix = "file://";
     }
-    memLogger_->log(*loggerFactory_.makeLogger(prefix + url));
+    memLogger_->setChromeLogger(loggerFactory_.makeLogger(prefix + url));
+    memLogger_->log(*memLogger_->getChromeLogger());
   }
 
  private:
